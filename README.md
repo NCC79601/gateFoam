@@ -1,6 +1,8 @@
 # sdfibm
 An immersed boundary method (IBM) implementation for simulating fluid-solid interaction and particle-laden multiphase flows.
 
+modified by zhw for gate opening case study
+
 -----------
 
 # Installation
