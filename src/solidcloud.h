@@ -57,7 +57,7 @@ private:
 
     // environmental info
     vector m_gravity;
-    scalar m_rhof;
+    // scalar m_rhof;
 
     // variables on mesh
     const Foam::fvMesh&   m_mesh;
@@ -65,7 +65,8 @@ private:
     Foam::volScalarField& m_ct;
     Foam::volScalarField& m_As;
     Foam::volVectorField& m_Fs;
-    Foam::volScalarField& m_Ts;
+    // Foam::volScalarField& m_Ts;
+    Foam::volScalarField& m_rhof;
 
     GeometricTools m_geotools;
     std::unique_ptr<Foam::meshSearch> m_ms;

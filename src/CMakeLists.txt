@@ -15,7 +15,10 @@ add_executable(${PROJECT_NAME} main.cpp logger.cpp solid.cpp solidcloud.cpp)
 add_definitions(${FOAMFLAG})
 
 target_include_directories(${PROJECT_NAME} PUBLIC $FOAMINC)
+# target_link_libraries(${PROJECT_NAME} PUBLIC
+#     OpenFOAM finiteVolume meshTools Pstream
+#     dl m motion shape collision sdfibm_util)
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    OpenFOAM finiteVolume meshTools Pstream
+    foam finiteVolume meshTools incompressibleTransportModels interfaceProperties incompressibleRASModels incompressibleLESModels incompressibleTurbulenceModel lduSolvers
     dl m motion shape collision sdfibm_util)
 

@@ -11,6 +11,8 @@
 
 namespace sdfibm {
 
+vector quaternionToEulerAnglesXYZ(const quaternion& q);
+
 class Solid
 {
 protected:
@@ -42,6 +44,10 @@ protected:
     vector forcer_force_old {vector::zero};
     vector forcer_torque_old {vector::zero};
     bool first_forcer_step {true};
+
+    // buoyancy
+    vector buoyancyForce  { vector::zero };
+    vector buoyancyTorque { vector::zero };
 
     // property pointers
     IMotion*   ptr_motion {nullptr};
@@ -133,6 +139,9 @@ public:
     {
         force  = vector::zero;
         torque = vector::zero;
+        // added for buoyancy:
+        buoyancyForce  = vector::zero;
+        buoyancyTorque = vector::zero;
     }
     inline void setFluidForceAndTorque(const vector& fluid_force_in, const vector& fluid_torque_in)
     {
@@ -172,6 +181,16 @@ public:
         }
         force  += (1.5*fluid_force  - 0.5*fluid_force_old);
         torque += (1.5*fluid_torque - 0.5*fluid_torque_old);
+    }
+    inline void addBuoyancyForceAndTorque(const vector& buoyancy_force, const vector& buoyancy_torque)
+    {
+        buoyancyForce  += buoyancy_force;
+        buoyancyTorque += buoyancy_torque;
+    }
+    inline void applyBuoyancyForceAndTorque()
+    {
+        force  += buoyancyForce;
+        torque += buoyancyTorque;
     }
     inline void addForceAndTorque(const vector& external_force, const vector& external_torque)
     {

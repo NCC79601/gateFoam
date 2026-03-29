@@ -45,10 +45,12 @@
 
     Info<< "Reading transportProperties\n" << endl;
     twoPhaseMixture twoPhaseProperties(U, phi, "alpha1");
-
+    
     const dimensionedScalar& rho1 = twoPhaseProperties.rho1();
     const dimensionedScalar& rho2 = twoPhaseProperties.rho2();
 
+    
+    printf("creating volScalarField rho...\n");
 
     // Need to store rho for ddt(rho, U)
     volScalarField rho
@@ -64,6 +66,8 @@
         alpha1.boundaryField().types()
     );
     rho.oldTime();
+
+    printf("volScalarField rho created.\n");
 
 
     // Mass flux
@@ -128,3 +132,19 @@
     (
         incompressible::turbulenceModel::New(U, phi, twoPhaseProperties)
     );
+
+    // sdfibm related
+    // no alpha, as no heat equation is solved
+    volScalarField As(IOobject("As", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+                    mesh,
+                    dimensionedScalar("As", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0),
+                    "zeroGradient");
+
+    volScalarField Ct(IOobject("Ct", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+                    mesh,
+                    dimensionedScalar("Ct", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0),
+                    "zeroGradient");
+    volVectorField Fs(IOobject("Fs", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::NO_WRITE),
+                    mesh,
+                    dimensionedVector("Fs", dimAcceleration, vector::zero),
+                    "fixedValue");

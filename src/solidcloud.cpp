@@ -13,6 +13,9 @@ namespace sdfibm {
 
 void SolidCloud::initFromDictionary(const Foam::word& dictfile)
 {
+    printf("trying to read SolidCloud dict...\n");
+    printf("current dictfile:\n");
+    std::cout << dictfile << std::endl;
     Foam::IFstream ifstream = Foam::IFstream(dictfile);
     dictionary root(ifstream());
     if (Foam::Pstream::master())
@@ -21,6 +24,7 @@ void SolidCloud::initFromDictionary(const Foam::word& dictfile)
         msg << "Init from " << dictfile;
         LOG(msg.str());
     }
+    printf("dictfile read complete.\n");
 
     // meta information
     const dictionary& meta = root.subDict("meta");
@@ -212,7 +216,8 @@ SolidCloud::SolidCloud(const Foam::word& dictfile, Foam::volVectorField& U, scal
     , m_ct(const_cast<Foam::volScalarField&>(m_mesh.lookupObject<Foam::volScalarField>("Ct")))
     , m_As(const_cast<Foam::volScalarField&>(m_mesh.lookupObject<Foam::volScalarField>("As")))
     , m_Fs(const_cast<Foam::volVectorField&>(m_mesh.lookupObject<Foam::volVectorField>("Fs")))
-    , m_Ts(const_cast<Foam::volScalarField&>(m_mesh.lookupObject<Foam::volScalarField>("Ts")))
+    // , m_Ts(const_cast<Foam::volScalarField&>(m_mesh.lookupObject<Foam::volScalarField>("Ts")))
+    , m_rhof(const_cast<Foam::volScalarField&>(m_mesh.lookupObject<Foam::volScalarField>("rho")))
     , m_geotools(GeometricTools(m_mesh))
     , m_ms(new Foam::meshSearch(m_mesh))
 {
@@ -248,10 +253,12 @@ SolidCloud::SolidCloud(const Foam::word& dictfile, Foam::volVectorField& U, scal
     m_ptr_ugrid = new UGrid(*m_ptr_bbox, 2 * m_radiusB);
 
     const Foam::dictionary& transportProperties = m_mesh.lookupObject<Foam::IOdictionary>("transportProperties");
-    const Foam::dimensionedScalar& rho = transportProperties.lookup("rho");
-    m_rhof = rho.value();
-    if (!m_ON_FLUID)
-        m_rhof = 0.0;
+    // const Foam::dimensionedScalar& rho = transportProperties.lookup("rho");
+    // Foam::dimensionedScalar rho(transportProperties.lookup("rho"));
+    // m_rhof = rho.value();
+    // if (!m_ON_FLUID)
+    //     m_rhof = 0.0;
+    // TODO: re-implement non-uniform density
 
     // correct initial condition to reduce #iteration during 1st time step
     m_ON_RESTART = false;
@@ -292,9 +299,10 @@ void SolidCloud::sanityCheck() const
         {
             if (Foam::Pstream::master())
             {
-                std::cout << "Error: for 2D simulation, the bound of the domain in z must be [-0.5, 0.5], with empty boundary conditions applied there." << std::endl;
+                // std::cout << "Error: for 2D simulation, the bound of the domain in z must be [-0.5, 0.5], with empty boundary conditions applied there." << std::endl;
+                std::cout << "Warning: for 2D simulation, the bound of the domain in z must be [-0.5, 0.5], with empty boundary conditions applied there." << std::endl;
             }
-            std::exit(1);
+            // std::exit(1);
         }
     }
 }
@@ -414,9 +422,10 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
         vector torque = (cc - solid.getCenter()) ^ force;
         return {force, torque};
     };
-    auto pcThermalInteraction = [](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> scalar {
-        return alpha;
-    };
+    // no thermal now
+    // auto pcThermalInteraction = [](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> scalar {
+    //     return alpha;
+    // };
 
     m_geotools.clearCache();
     const Foam::vectorField& cc = m_mesh.cellCentres();
@@ -425,6 +434,8 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
     scalar dtINV = 1.0 / dt;
     vector force = vector::zero;
     vector torque = vector::zero;
+
+    scalar rhos = solid.getMaterial()->getRho();
 
     for (size_t counter = 0; counter < cellids.size(); ++counter)
     {
@@ -438,17 +449,28 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
 
         // hydrodynamic interaction
         auto [f_, t_] = pcHydrodynamicInteraction(solid, m_Uf[cellid], cc[cellid], alpha);
-        force += f_ * cv[cellid] * dtINV;
-        torque += t_ * cv[cellid] * dtINV;
+        force += f_ * cv[cellid] * dtINV * m_rhof[cellid];
+        torque += t_ * cv[cellid] * dtINV * m_rhof[cellid];
         m_Fs[cellid] += f_ * dtINV;
 
         // thermal interaction
-        auto T_ = pcThermalInteraction(solid, m_Uf[cellid], cc[cellid], alpha);
-        m_Ts[cellid] += T_;
-    }
+        // auto T_ = pcThermalInteraction(solid, m_Uf[cellid], cc[cellid], alpha);
+        // no thermal
+        // m_Ts[cellid] += T_;
 
-    force *= m_rhof;
-    torque *= m_rhof;
+        // buoyancy calculation
+        vector localBuoyancyForce  = -alpha * cv[cellid] * (rhos - m_rhof[cellid]) * m_gravity;
+        vector localBuoyancyTorque = (cc[cellid] - solid.getCenter()) ^ localBuoyancyForce;
+
+        solid.addBuoyancyForceAndTorque(
+            localBuoyancyForce,
+            localBuoyancyTorque
+        );
+    }
+    
+    // force *= m_rhof;
+    // torque *= m_rhof;
+    // handled as non-uniform density in cell for
 
     if (Foam::Pstream::parRun())
     {
@@ -464,7 +486,7 @@ void SolidCloud::interact(scalar time, scalar dt)
     m_ct = 0;
     m_As = 0.0;
     m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
-    m_Ts = Foam::dimensionedScalar("zero", Foam::dimTemperature, 0.0);
+    // m_Ts = Foam::dimensionedScalar("zero", Foam::dimTemperature, 0.0);
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
@@ -486,17 +508,18 @@ void SolidCloud::interact(scalar time, scalar dt)
 
     m_As.correctBoundaryConditions();
     m_Fs.correctBoundaryConditions();
-    m_Ts.correctBoundaryConditions();
+    // m_Ts.correctBoundaryConditions();
 }
 
-void SolidCloud::addMidEnvironment()
+void SolidCloud::addMidEnvironment() // FIXME: incorrect calculation method
 {
     // add env effect (like gravity) at time = t + dt/2
     for (Solid& solid : m_solids)
     {
-        scalar rhos = solid.getMaterial()->getRho();
-        vector gprime = ((rhos - m_rhof) / rhos) * m_gravity;
-        solid.addAcceleration(gprime);
+        // scalar rhos = solid.getMaterial()->getRho();
+        // vector gprime = ((rhos - m_rhof) / rhos) * m_gravity;
+        // solid.addAcceleration(gprime);
+        solid.applyBuoyancyForceAndTorque();
     }
 }
 
@@ -661,7 +684,8 @@ void SolidCloud::saveRestart(const std::string& filename)
                 tmp.z() = 0.0;
             solid.set("vel", tmp);
 
-            solid.set("euler", s.getOrientation().eulerAngles(quaternion::XYZ) * 180.0 / M_PI); // to degree
+            // solid.set("euler", s.getOrientation().eulerAngles(quaternion::XYZ) * 180.0 / M_PI); // to degree
+            solid.set("euler", quaternionToEulerAnglesXYZ(s.getOrientation()) * 180.0 / M_PI); // modified
             tmp = s.getOmega();
             if (m_ON_TWOD)
             {

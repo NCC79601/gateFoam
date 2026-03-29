@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
 #   include "readGravitationalAcceleration.H"
 #   include "initContinuityErrs.H"
-#   include "createFields.H"
+#   include "createFields.h"
 #   include "createTimeControls.H"
 #   include "correctPhi.H"
 #   include "CourantNo.H"
@@ -81,9 +81,16 @@ int main(int argc, char *argv[])
         }
         else
         {
-            dictfile = "solidDict";
-        }   
+            dictfile = "processor0/" + mesh.time().timeName() + "/solidDict";
+        }
     }
+    else
+    {
+        dictfile = "solidDict";
+    }
+
+    printf("[DEBUG] dictfile before passing into SolidCloud constructor:\n");
+    std::cout << dictfile << std::endl;
 
     sdfibm::SolidCloud solidcloud(runTime.path() + "/" + dictfile, U, runTime.value());
     solidcloud.saveState(); // write the initial condition
