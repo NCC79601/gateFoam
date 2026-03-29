@@ -1,108 +1,150 @@
-#include "fvMesh.H"
-#include "Time.H"
-#include "argList.H" // TODO: add some cmd arguments
-#include "findRefCell.H"
-#include "adjustPhi.H"
+// modified from interFoam.C
 
-#include "fvcGrad.H"
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | foam-extend: Open Source CFD
+   \\    /   O peration     | Version:     4.1
+    \\  /    A nd           | Web:         http://www.foam-extend.org
+     \\/     M anipulation  | For copyright notice see file Copyright
+-------------------------------------------------------------------------------
+License
+    This file is part of foam-extend.
 
-#include "fvmDdt.H"
-#include "fvmDiv.H"
-#include "fvmLaplacian.H"
+    foam-extend is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the
+    Free Software Foundation, either version 3 of the License, or (at your
+    option) any later version.
+
+    foam-extend is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with foam-extend.  If not, see <http://www.gnu.org/licenses/>.
+
+Application
+    interFoam
+
+Description
+    Solver for 2 incompressible, isothermal immiscible fluids using a VOF
+    (volume of fluid) phase-fraction based interface capturing approach.
+
+    The momentum and other fluid properties are of the "mixture" and a single
+    momentum equation is solved.
+
+    Turbulence modelling is generic, i.e.  laminar, RAS or LES may be selected.
+
+    For a two-fluid approach see twoPhaseEulerFoam.
+
+\*---------------------------------------------------------------------------*/
+
+#include "fvCFD.H"
+#include "MULES.H"
+#include "subCycle.H"
+#include "interfaceProperties.H"
+#include "twoPhaseMixture.H"
+#include "turbulenceModel.H"
+#include "pimpleControl.H"
 
 #include "solidcloud.h"
 
-int main(int argc, char* argv[])
-{
-#include "setRootCase.H"
-#include "createTime.H"
-#include "createMesh.H"
-#include "createFields.h"
-#include "initContinuityErrs.H"
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+int main(int argc, char *argv[])
+{
+#   include "setRootCase.H"
+#   include "createTime.H"
+#   include "createMesh.H"
+
+    pimpleControl pimple(mesh);
+
+#   include "readGravitationalAcceleration.H"
+#   include "initContinuityErrs.H"
+#   include "createFields.H"
+#   include "createTimeControls.H"
+#   include "correctPhi.H"
+#   include "CourantNo.H"
+#   include "setInitialDeltaT.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    // initialize sdfibm
+    
     std::string dictfile;
 
-    // if start-time > 0, read from start-time-folder for solidDict, otherwise read from case root
     if (runTime.time().value() > 0)
     {
         if (!Foam::Pstream::parRun())
-            dictfile = mesh.time().name() + "/solidDict";
+        {
+            dictfile = mesh.time().timeName() + "/solidDict";
+        }
         else
-            dictfile = "processor0/" + mesh.time().name() + "/solidDict";
-    }
-    else
-    {
-        dictfile = "solidDict";
+        {
+            dictfile = "solidDict";
+        }   
     }
 
-    sdfibm::SolidCloud solidcloud(runTime.globalPath() + "/" + dictfile, U, runTime.value());
+    sdfibm::SolidCloud solidcloud(runTime.path() + "/" + dictfile, U, runTime.value());
     solidcloud.saveState(); // write the initial condition
 
-    while (runTime.loop())
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    Info<< "\nStarting time loop\n" << endl;
+
+    while (runTime.run())
     {
-        Foam::Info << "Time = " << runTime.name() << Foam::endl;
+#       include "readTimeControls.H"
+#       include "CourantNo.H"
+#       include "setDeltaT.H"
 
-#include "CourantNo.H"
-        Foam::dimensionedScalar dt = runTime.deltaT();
+        runTime++;
 
-        if (solidcloud.isOnFluid())
+        Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        // Pressure-velocity corrector
+        while (pimple.loop())
         {
-            Foam::fvVectorMatrix UEqn(fvm::ddt(U) + 1.5 * fvc::div(phi, U) -
-                                          0.5 * fvc::div(phi.oldTime(), U.oldTime()) ==
-                                      0.5 * fvm::laplacian(nu, U) + 0.5 * fvc::laplacian(nu, U));
-            UEqn.solve();
+            twoPhaseProperties.correct();
 
-            phi = linearInterpolate(U) & mesh.Sf();
-            Foam::fvScalarMatrix pEqn(fvm::laplacian(p) == fvc::div(phi) / dt - fvc::div(Fs));
-            pEqn.solve();
+#           include "alphaEqnSubCycle.H"
 
-            U = U - dt * fvc::grad(p);
-            phi = phi - dt * fvc::snGrad(p) * mesh.magSf();
+#           include "UEqn.H"
 
-            Foam::fvScalarMatrix TEqn(fvm::ddt(T) + fvm::div(phi, T) == fvm::laplacian(alpha, T));
-            TEqn.solve();
-        }
-
-        solidcloud.interact(runTime.value(), dt.value());
-
-        if (solidcloud.isOnFluid())
-        {
-            U = U - Fs * dt;
-            phi = phi - dt * (linearInterpolate(Fs) & mesh.Sf());
-
-            U.correctBoundaryConditions();
-            adjustPhi(phi, U, p);
-
-            T = (1.0 - As) * T + Ts;
-            T.correctBoundaryConditions();
-
-#include "continuityErrs.H"
-        }
-
-        solidcloud.evolve(runTime.value(), dt.value());
-        solidcloud.saveState();
-
-        if (solidcloud.isOnFluid())
-        {
-            solidcloud.fixInternal(dt.value());
-        }
-
-        if (runTime.writeTime())
-        {
-            runTime.write();
-
-            if (Foam::Pstream::master())
+            // --- PISO loop
+            while (pimple.correct())
             {
-                std::string file_name;
-                if (Foam::Pstream::parRun())
-                    file_name = "./processor0/" + runTime.name() + "/solidDict";
-                else
-                    file_name = "./" + runTime.name() + "/solidDict";
-                solidcloud.saveRestart(file_name);
+#               include "pEqn.H"
             }
+
+#           include "continuityErrs.H"
+
+            p = pd + rho*gh;
+
+            if (pd.needReference())
+            {
+                p += dimensionedScalar
+                (
+                    "p",
+                    p.dimensions(),
+                    pRefValue - getRefCellValue(p, pdRefCell)
+                );
+            }
+
+            turbulence->correct();
         }
+
+        runTime.write();
+
+        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
+            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
+            << nl << endl;
     }
 
-    Foam::Info << "DONE\n" << Foam::endl;
+    Info<< "End\n" << endl;
+
     return 0;
 }
+
+
+// ************************************************************************* //

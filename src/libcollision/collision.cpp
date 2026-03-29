@@ -7,7 +7,9 @@ namespace sdfibm{
 scalar sphereSphereCollision(const Solid& s1, const Solid& s2, vector& cP, vector& cN)
 {
     Foam::vector s2s = s2.getCenter() - s1.getCenter();
-    cN = Foam::normalised(s2s);
+    // cN = Foam::normalised(s2s);
+    cN = s2s;
+    cN /= Foam::mag(cN) + Foam::VSMALL; // FIX: change to these 2 lines
 
     scalar r1 = s1.getShape()->getRadiusB();
     scalar r2 = s2.getShape()->getRadiusB();

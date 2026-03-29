@@ -22,10 +22,21 @@ set(FOAMFLAG "-std=c++17 -m64 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_S
 
 set(FOAMINC
     ${FOAMSRC}/finiteVolume/lnInclude 
-    ${FOAMSRC}/OpenFOAM/lnInclude  
+    # ${FOAMSRC}/OpenFOAM/lnInclude  
+    ${FOAMSRC}/foam/lnInclude # FIX: change to this!
     ${FOAMSRC}/OSspecific/POSIX/lnInclude 
     ${FOAMSRC}/meshTools/lnInclude 
     ${FOAMSRC}/dynamicFvMesh/lnInclude 
+    ${FOAMSRC}/lagrangian/basic/lnInclude # FIX: add this!
+    ${FOAMSRC}/foam/lnInclude # FIX: add this!
+    # try:
+    ${FOAMSRC}/transportModels/interfaceProperties/lnInclude
+    # for interfaceProperties.H
+    ${FOAMSRC}/transportModels/incompressible/lnInclude
+    ${FOAMSRC}/transportModels
+    # for twoPhaseMixture.H
+    ${FOAMSRC}/turbulenceModels/incompressible/turbulenceModel/lnInclude
+    # for turbulenceModel.H
 )
 
 link_directories(

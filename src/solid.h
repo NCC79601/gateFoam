@@ -76,7 +76,8 @@ public:
     inline void setOrientation(const vector& angles)
     {
         // from a fixed order of Euler angles
-        orientation = quaternion(quaternion::XYZ, angles);
+        // orientation = quaternion(quaternion::XYZ, angles);
+        orientation = quaternion(angles); // FIX: change to this!
     }
 
     inline IMotion*   getMotion()   const {return ptr_motion;  }
@@ -198,7 +199,8 @@ public:
         // position & orientation updated AFTER constraint
         center      += 0.5*(velocity + velocity_old)*dt;
         orientation += 0.5*quaternion(0.5*(omega + omega_old))*orientation*dt;
-        orientation.normalise(); // no need to normalise every step, but cheap anyway
+        // orientation.normalise(); // no need to normalise every step, but cheap anyway
+        orientation.normalize(); // FIX: change to this!
     }
 
     Solid(label solid_id,
