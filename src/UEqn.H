@@ -12,8 +12,8 @@
       - fvm::laplacian(muEff, U)
       - (fvc::grad(U) & fvc::grad(muEff))
       #ifdef ENABLE_IBM
-      + fvm::Sp(rho * As / dt, U) // implicit
-      - rho * (As * U / dt - Fs)  // explicit
+      + fvm::Sp(Cpenalty * rho * As / dt, U) // implicit
+      - rho * (Cpenalty * As * U / dt - Fs)  // explicit
       #endif
     //- fvc::div(muEff*(fvc::interpolate(dev(fvc::grad(U))) & mesh.Sf()))
     );

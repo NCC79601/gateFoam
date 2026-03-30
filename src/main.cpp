@@ -98,6 +98,9 @@ int main(int argc, char *argv[])
     sdfibm::SolidCloud solidcloud(runTime.path() + "/" + dictfile, U, runTime.value());
     solidcloud.saveState(); // write the initial condition
 
+    // read penalty factor
+    dimensionedScalar Cpenalty("Cpenalty", dimless, solidcloud.Cpenalty());
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;

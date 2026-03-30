@@ -48,6 +48,15 @@ void SolidCloud::initFromDictionary(const Foam::word& dictfile)
     m_writeFrequency = meta.lookupOrDefault("writeFrequency", 1);
     meta.found("sampler") ? m_sampler = Foam::word(meta.lookup("sampler")) : "";
 
+    // read penalty factor
+    m_Cpenalty = meta.lookupOrDefault("Cpenalty", 100.0);
+    if (Foam::Pstream::master())
+    {
+        std::ostringstream msg;
+        msg << "IBM Penalty factor Cpenalty = " << m_Cpenalty << "\n";
+        LOG(msg.str());
+    }
+
     // log meta information
     if (Foam::Pstream::master())
     {
@@ -335,7 +344,9 @@ void SolidCloud::fixInternal(scalar dt)
         if (m_ct[icell] >= 4) // if cell totally within a solid
         {
             label id = m_ct[icell] - 4; // id of the solid that contains this cell
-            m_Uf[icell] = m_solids[id].evalPointVelocity(cc[icell]);
+            // m_Uf[icell] = m_solids[id].evalPointVelocity(cc[icell]);
+            // FIXME: workaround
+            m_Uf[icell] = vector::zero;
         }
     }
     m_Uf.correctBoundaryConditions();
@@ -431,11 +442,11 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
         m_ct[cellid] = CT::CENTER_OUTSIDE;
 
     auto pcHydrodynamicInteraction =
-        [](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> std::pair<vector, vector> {
+        [this](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> std::pair<vector, vector> {
         vector us = solid.evalPointVelocity(cc);
         // FIXME: workaround for us
         us = vector::zero;
-        vector force = alpha * (uf - us);
+        vector force = m_Cpenalty * alpha * (uf - us);
         vector torque = (cc - solid.getCenter()) ^ force;
         return {force, torque};
     };

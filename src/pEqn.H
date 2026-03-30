@@ -11,6 +11,12 @@
       + fvc::ddtPhiCorr(rUA, rho, U, phi)
     );
 
+    // momemtum masking
+    #ifdef ENABLE_IBM
+    surfaceScalarField Asf = fvc::interpolate(As);
+    phiU = (1.0 - Asf) * phiU;
+    #endif
+
     adjustPhi(phiU, U, pd);
 
     phi = phiU +
@@ -42,10 +48,10 @@
 
     U += rUA*fvc::reconstruct((phi - phiU)/rUAf);
 
-    // clear inner velocity
-    // #ifdef ENABLE_IBM
-    // solidcloud.fixInternal(dt.value());
-    // #endif
+    // fix inner velocity
+    #ifdef ENABLE_IBM
+    solidcloud.fixInternal(dt.value());
+    #endif
 
     U.correctBoundaryConditions();
 }

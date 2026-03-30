@@ -68,6 +68,8 @@ private:
     // Foam::volScalarField& m_Ts;
     Foam::volScalarField& m_rhof;
 
+    scalar m_Cpenalty;
+
     GeometricTools m_geotools;
     std::unique_ptr<Foam::meshSearch> m_ms;
 
@@ -107,6 +109,7 @@ public:
     scalar totalSolidVolume() const;
     bool inline isOnFluid() const {return m_ON_FLUID;}
     bool inline isOnTwoD()  const {return m_ON_TWOD;}
+    scalar Cpenalty() const { return m_Cpenalty; }
 
     // time stepping
     void storeOld();
