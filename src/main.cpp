@@ -53,6 +53,9 @@ Description
 
 // #define GATEFOAM_DEBUG
 
+// NOTE: activate ibm interaction here!
+// #define ENABLE_IBM
+
 int main(int argc, char *argv[])
 {
 #   include "setRootCase.H"
@@ -122,11 +125,14 @@ int main(int argc, char *argv[])
 
             // calculate source terms introduced by solid interaction
             // TODO: maybe only once?
-            // solidcloud.interact(runTime.value(), dt.value());
+            #ifdef ENABLE_IBM
+            solidcloud.interact(runTime.value(), dt.value());
+            #endif
 
             // --- PISO loop
             while (pimple.correct())
             {
+                // IBM correction is implemented in pEqn.H
 #               include "pEqn.H"
             }
 
@@ -148,26 +154,33 @@ int main(int argc, char *argv[])
         }
 
         // TODO: maybe once? does it need iterative correction?
+        
+        // deprecated: apply IBM correction
+        /*
         solidcloud.interact(runTime.value(), dt.value());
-
-        // apply IBM correction
+        
         U = U - Fs * dt;
         phi = phi - dt * (linearInterpolate(Fs) & mesh.Sf());
         U.correctBoundaryConditions();
-        adjustPhi(phi, U, p);
+        adjustPhi(phi, U, pd); // pd?
+        */
         
-#       include "continuityErrs.H"
+// #       include "continuityErrs.H"
 
+        #ifdef ENABLE_IBM
         // evolve the solidcloud
         solidcloud.evolve(runTime.value(), dt.value());
         solidcloud.saveState();
+        #endif
 
-        solidcloud.fixInternal(dt.value());
+        //FIXME: seems problematic
+        // solidcloud.fixInternal(dt.value());
         
         if (runTime.outputTime())
         {
             runTime.write();
-
+            
+            #ifdef ENABLE_IBM
             if (Foam::Pstream::master())
             {
                 std::string file_name;
@@ -177,6 +190,7 @@ int main(int argc, char *argv[])
                     file_name = "./" + runTime.timeName() + "/solidDict";
                 solidcloud.saveRestart(file_name);
             }
+            #endif
         }
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
