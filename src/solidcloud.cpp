@@ -433,6 +433,8 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
     auto pcHydrodynamicInteraction =
         [](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> std::pair<vector, vector> {
         vector us = solid.evalPointVelocity(cc);
+        // FIXME: workaround for us
+        us = vector::zero;
         vector force = alpha * (uf - us);
         vector torque = (cc - solid.getCenter()) ^ force;
         return {force, torque};
@@ -526,12 +528,18 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
     solid.setFluidForceAndTorque(force, torque);
 }
 
+void SolidCloud::clearFs()
+{
+    m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
+}
+
 void SolidCloud::interact(scalar time, scalar dt)
 {
     // reset solid field, which are source terms for the fluid solver
     m_ct = 0;
     m_As = 0.0;
-    m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
+    // m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
+    // clear m_Fs explicitly at each pimple outer iteration
     // m_Ts = Foam::dimensionedScalar("zero", Foam::dimTemperature, 0.0);
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();

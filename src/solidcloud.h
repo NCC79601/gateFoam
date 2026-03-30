@@ -113,6 +113,7 @@ public:
     void restoreOld();
     void writeMeanField();
     void evolve  (scalar time, scalar dt);
+    void clearFs();
     void interact(scalar time, scalar dt);
     void addMidEnvironment();
     void fixInternal(scalar dt);

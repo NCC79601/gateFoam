@@ -12,8 +12,8 @@
       - fvm::laplacian(muEff, U)
       - (fvc::grad(U) & fvc::grad(muEff))
       #ifdef ENABLE_IBM
-      + fvm::Sp(1000.0 * rho * As / runTime.deltaT(), U) // implicit
-    //   - rho * (As * U / runTime.deltaT() - 0. * Fs)  // explicit
+      + fvm::Sp(rho * As / dt, U) // implicit
+      - rho * (As * U / dt - Fs)  // explicit
       #endif
     //- fvc::div(muEff*(fvc::interpolate(dev(fvc::grad(U))) & mesh.Sf()))
     );
@@ -34,8 +34,5 @@
                   - fvc::snGrad(pd)
                 )*mesh.magSf()
             )
-        #ifdef ENABLE_IBM
-          + rho * 1000.0 * (As * U / runTime.deltaT() - Fs)
-        #endif
         );
     }

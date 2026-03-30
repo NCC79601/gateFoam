@@ -41,5 +41,11 @@
     }
 
     U += rUA*fvc::reconstruct((phi - phiU)/rUAf);
+
+    // clear inner velocity
+    // #ifdef ENABLE_IBM
+    // solidcloud.fixInternal(dt.value());
+    // #endif
+
     U.correctBoundaryConditions();
 }
