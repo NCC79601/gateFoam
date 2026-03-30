@@ -4,11 +4,6 @@
 
     U = rUA*UEqn.H();
 
-    // IBM interaction
-    // #ifdef ENABLE_IBM
-    // U = U - Fs * dt;
-    // #endif
-
     surfaceScalarField phiU
     (
         "phiU",

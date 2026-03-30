@@ -123,9 +123,9 @@ int main(int argc, char *argv[])
 
             // calculate source terms introduced by solid interaction
             // TODO: maybe only once?
-            #ifdef ENABLE_IBM
-            solidcloud.interact(runTime.value(), dt.value());
-            #endif
+            // #ifdef ENABLE_IBM
+            // solidcloud.interact(runTime.value(), dt.value());
+            // #endif
 
 #           include "UEqn.H"
 
@@ -170,8 +170,8 @@ int main(int argc, char *argv[])
         solidcloud.evolve(runTime.value(), dt.value());
         solidcloud.saveState();
 
-        //FIXME: seems problematic
-        solidcloud.fixInternal(dt.value());
+        // FIXME: seems problematic
+        // solidcloud.fixInternal(dt.value());
         #endif
         
         if (runTime.outputTime())
