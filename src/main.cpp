@@ -114,6 +114,11 @@ int main(int argc, char *argv[])
 
         Foam::dimensionedScalar dt = runTime.deltaT();
 
+        // calculate source terms introduced by solid interaction
+        // #ifdef ENABLE_IBM
+        // solidcloud.interact(runTime.value(), dt.value());
+        // #endif
+
         // Pressure-velocity corrector
         while (pimple.loop())
         {
@@ -123,9 +128,9 @@ int main(int argc, char *argv[])
 
             // calculate source terms introduced by solid interaction
             // TODO: maybe only once?
-            // #ifdef ENABLE_IBM
+            #ifdef ENABLE_IBM
             // solidcloud.interact(runTime.value(), dt.value());
-            // #endif
+            #endif
 
 #           include "UEqn.H"
 
