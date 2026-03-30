@@ -54,7 +54,7 @@ Description
 // #define GATEFOAM_DEBUG
 
 // NOTE: activate ibm interaction here!
-// #define ENABLE_IBM
+#define ENABLE_IBM
 
 int main(int argc, char *argv[])
 {
@@ -121,13 +121,13 @@ int main(int argc, char *argv[])
 
 #           include "alphaEqnSubCycle.H"
 
-#           include "UEqn.H"
-
             // calculate source terms introduced by solid interaction
             // TODO: maybe only once?
             #ifdef ENABLE_IBM
             solidcloud.interact(runTime.value(), dt.value());
             #endif
+
+#           include "UEqn.H"
 
             // --- PISO loop
             while (pimple.correct())
@@ -164,17 +164,15 @@ int main(int argc, char *argv[])
         U.correctBoundaryConditions();
         adjustPhi(phi, U, pd); // pd?
         */
-        
-// #       include "continuityErrs.H"
 
         #ifdef ENABLE_IBM
         // evolve the solidcloud
         solidcloud.evolve(runTime.value(), dt.value());
         solidcloud.saveState();
-        #endif
 
         //FIXME: seems problematic
-        // solidcloud.fixInternal(dt.value());
+        solidcloud.fixInternal(dt.value());
+        #endif
         
         if (runTime.outputTime())
         {

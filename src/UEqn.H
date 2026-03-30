@@ -11,6 +11,9 @@
       + fvm::div(rhoPhi, U)
       - fvm::laplacian(muEff, U)
       - (fvc::grad(U) & fvc::grad(muEff))
+      #ifdef ENABLE_IBM
+      + rho * Fs // implicit handling of ibm
+      #endif
     //- fvc::div(muEff*(fvc::interpolate(dev(fvc::grad(U))) & mesh.Sf()))
     );
 
