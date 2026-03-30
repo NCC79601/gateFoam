@@ -19,7 +19,8 @@ meta
 {
   on_fluid 1;
   on_twod  1;
-  gravity  (0.0 0.0 0.0);
+  gravity  (0.0 -9.8 0.0);
+  Cpenalty 200.0;              // penalty factor for IBM
 }
   
 shapes
