@@ -129,18 +129,53 @@
         incompressible::turbulenceModel::New(U, phi, twoPhaseProperties)
     );
 
-    // sdfibm related
+    /************** sdfibm related **************/
     // no alpha, as no heat equation is solved
-    volScalarField As(IOobject("As", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
-                    mesh,
-                    dimensionedScalar("As", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0),
-                    "zeroGradient");
+    volScalarField As
+    (
+        IOobject
+        (
+            "As",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "As",
+            dimensionSet(0, 0, 0, 0, 0, 0, 0),
+            0.0
+        ),
+        "zeroGradient"
+    );
 
-    volScalarField Ct(IOobject("Ct", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
-                    mesh,
-                    dimensionedScalar("Ct", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0),
-                    "zeroGradient");
-    volVectorField Fs(IOobject("Fs", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::NO_WRITE),
-                    mesh,
-                    dimensionedVector("Fs", dimAcceleration, vector::zero),
-                    "fixedValue");
+    volScalarField Ct
+    (
+        IOobject(
+            "Ct",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("Ct", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0),
+        "zeroGradient"
+    );
+
+    volVectorField Fs
+    (
+        IOobject(
+            "Fs",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            // IOobject::NO_WRITE
+            IOobject::AUTO_WRITE // enable writing for Fs
+        ),
+        mesh,
+        dimensionedVector("Fs", dimAcceleration, vector::zero),
+        "fixedValue"
+    );

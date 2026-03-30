@@ -122,13 +122,7 @@ int main(int argc, char *argv[])
 
             // calculate source terms introduced by solid interaction
             // TODO: maybe only once?
-            solidcloud.interact(runTime.value(), dt.value());
-            
-            // apply IBM correction
-            U = U - Fs * dt;
-            phi = phi - dt * (linearInterpolate(Fs) & mesh.Sf());
-            U.correctBoundaryConditions();
-            adjustPhi(phi, U, p);
+            // solidcloud.interact(runTime.value(), dt.value());
 
             // --- PISO loop
             while (pimple.correct())
@@ -152,6 +146,17 @@ int main(int argc, char *argv[])
 
             turbulence->correct();
         }
+
+        // TODO: maybe once? does it need iterative correction?
+        solidcloud.interact(runTime.value(), dt.value());
+
+        // apply IBM correction
+        U = U - Fs * dt;
+        phi = phi - dt * (linearInterpolate(Fs) & mesh.Sf());
+        U.correctBoundaryConditions();
+        adjustPhi(phi, U, p);
+        
+#       include "continuityErrs.H"
 
         // evolve the solidcloud
         solidcloud.evolve(runTime.value(), dt.value());
