@@ -51,7 +51,7 @@ Description
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define GATEFOAM_DEBUG
+// #define GATEFOAM_DEBUG
 
 int main(int argc, char *argv[])
 {

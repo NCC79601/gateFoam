@@ -557,7 +557,7 @@ void SolidCloud::interact(scalar time, scalar dt)
     // m_Ts.correctBoundaryConditions();
 }
 
-void SolidCloud::addMidEnvironment() // FIXME: incorrect calculation method
+void SolidCloud::addMidEnvironment() // FIXME: incorrect calculation method?
 {
     // add env effect (like gravity) at time = t + dt/2
     for (Solid& solid : m_solids)

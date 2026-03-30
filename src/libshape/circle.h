@@ -42,13 +42,11 @@ public:
 
     virtual inline scalar signedDistance(const vector& p) const override
     {
-        // FIXME
+        #ifdef GATEFOAM_DEBUG
         // debug info
         vector center_point = m_com + vector(p.x(), p.y(), 0.0);
         scalar result = sdf::filter(sdf::circle(m_com + vector(p.x(), p.y(), 0.0), m_radius));
         
-        #ifdef GATEFOAM_DEBUG
-        // debug info
         {
             printf(">>>>> Circle::signedDistance:\n");
             printf("    m_com = (%.3f, %.3f, %.3f)\n", m_com.x(), m_com.y(), m_com.z());

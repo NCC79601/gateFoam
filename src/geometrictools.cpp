@@ -8,7 +8,7 @@ scalar GeometricTools::UpdateCache(label vertexInd, const Solid& solid)
     if (phiCache.find(vertexInd) == phiCache.end()) {
         phiCache[vertexInd] = solid.phi(m_pp[vertexInd]);
         #ifdef GATEFOAM_DEBUG
-        // FIXME: debug info
+        // debug info
         {
             printf(">>>>> GeometricTools::UpdateCache():\n");
             printf("      now visiting m_pp[%d] = (%lf, %lf, %lf), phiCache[%d]=%lf\n", vertexInd, m_pp[vertexInd].x(), m_pp[vertexInd].y(), m_pp[vertexInd].z(), vertexInd, phiCache[vertexInd]);
