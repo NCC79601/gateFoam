@@ -49,8 +49,6 @@
     const dimensionedScalar& rho1 = twoPhaseProperties.rho1();
     const dimensionedScalar& rho2 = twoPhaseProperties.rho2();
 
-    
-    printf("creating volScalarField rho...\n");
 
     // Need to store rho for ddt(rho, U)
     volScalarField rho
@@ -66,8 +64,6 @@
         alpha1.boundaryField().types()
     );
     rho.oldTime();
-
-    printf("volScalarField rho created.\n");
 
 
     // Mass flux

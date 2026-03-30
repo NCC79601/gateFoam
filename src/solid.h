@@ -122,6 +122,12 @@ public:
     // sdf at point, negative if inside
     inline scalar phi(const vector& p) const
     {
+        #ifdef GATEFOAM_DEBUG
+        // debug info
+        {
+            printf(">>>>> Solid::phi(p) receiving p=(%lf, %lf, %lf)\n", p.x(), p.y(), p.z());
+        }
+        #endif
         return ptr_shape->phi(p, {center, orientation});
     }
 
@@ -189,6 +195,17 @@ public:
     }
     inline void applyBuoyancyForceAndTorque()
     {
+        // FIXME: outputting zero?
+
+        #ifdef GATEFOAM_DEBUG
+        // debug info
+        {
+            printf("[DEBUG] applying buoyancy force and torque:\n");
+            std::cout << "force: " << buoyancyForce.x() << " " << buoyancyForce.y() << std::endl;
+            std::cout << "torque: " << buoyancyTorque.x() << " " << buoyancyTorque.y() << " " << buoyancyTorque.z() << std::endl;
+        }
+        #endif
+        
         force  += buoyancyForce;
         torque += buoyancyTorque;
     }

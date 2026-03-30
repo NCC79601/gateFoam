@@ -51,6 +51,8 @@ Description
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+#define GATEFOAM_DEBUG
+
 int main(int argc, char *argv[])
 {
 #   include "setRootCase.H"
@@ -73,6 +75,7 @@ int main(int argc, char *argv[])
     
     std::string dictfile;
 
+    // if start-time > 0, read from start-time-folder for solidDict, otherwise read from case root
     if (runTime.time().value() > 0)
     {
         if (!Foam::Pstream::parRun())
@@ -88,9 +91,6 @@ int main(int argc, char *argv[])
     {
         dictfile = "solidDict";
     }
-
-    printf("[DEBUG] dictfile before passing into SolidCloud constructor:\n");
-    std::cout << dictfile << std::endl;
 
     sdfibm::SolidCloud solidcloud(runTime.path() + "/" + dictfile, U, runTime.value());
     solidcloud.saveState(); // write the initial condition
@@ -109,6 +109,8 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
+        Foam::dimensionedScalar dt = runTime.deltaT();
+
         // Pressure-velocity corrector
         while (pimple.loop())
         {
@@ -117,6 +119,16 @@ int main(int argc, char *argv[])
 #           include "alphaEqnSubCycle.H"
 
 #           include "UEqn.H"
+
+            // calculate source terms introduced by solid interaction
+            // TODO: maybe only once?
+            solidcloud.interact(runTime.value(), dt.value());
+            
+            // apply IBM correction
+            U = U - Fs * dt;
+            phi = phi - dt * (linearInterpolate(Fs) & mesh.Sf());
+            U.correctBoundaryConditions();
+            adjustPhi(phi, U, p);
 
             // --- PISO loop
             while (pimple.correct())
@@ -141,7 +153,26 @@ int main(int argc, char *argv[])
             turbulence->correct();
         }
 
-        runTime.write();
+        // evolve the solidcloud
+        solidcloud.evolve(runTime.value(), dt.value());
+        solidcloud.saveState();
+
+        solidcloud.fixInternal(dt.value());
+        
+        if (runTime.outputTime())
+        {
+            runTime.write();
+
+            if (Foam::Pstream::master())
+            {
+                std::string file_name;
+                if (Foam::Pstream::parRun())
+                    file_name = "./processor0/" + runTime.timeName() + "/solidDict";
+                else
+                    file_name = "./" + runTime.timeName() + "/solidDict";
+                solidcloud.saveRestart(file_name);
+            }
+        }
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"

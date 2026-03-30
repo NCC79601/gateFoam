@@ -13,9 +13,14 @@ namespace sdfibm {
 
 void SolidCloud::initFromDictionary(const Foam::word& dictfile)
 {
-    printf("trying to read SolidCloud dict...\n");
-    printf("current dictfile:\n");
-    std::cout << dictfile << std::endl;
+    #ifdef GATEFOAM_DEBUG
+    // debug info
+    {
+        printf("trying to read SolidCloud dict...\n");
+        printf("current dictfile:\n");
+        std::cout << dictfile << std::endl;
+    }
+    #endif
     Foam::IFstream ifstream = Foam::IFstream(dictfile);
     dictionary root(ifstream());
     if (Foam::Pstream::master())
@@ -24,7 +29,9 @@ void SolidCloud::initFromDictionary(const Foam::word& dictfile)
         msg << "Init from " << dictfile;
         LOG(msg.str());
     }
+    #ifdef GATEFOAM_DEBUG
     printf("dictfile read complete.\n");
+    #endif
 
     // meta information
     const dictionary& meta = root.subDict("meta");
@@ -384,6 +391,14 @@ Type SolidCloud::calcMeanField(Solid& solid,
         ce.Next();
     }
 
+    #ifdef GATEFOAM_DEBUG
+    // debug info
+    if (Foam::Pstream::master()) {
+        printf("=== Solid %d at (%.2f, %.2f) ===\n", solid.getID(), 
+            solid.getCenter().x(), solid.getCenter().y());
+    }
+    #endif
+
     if (Foam::Pstream::parRun())
     {
         Foam::reduce(meanField, Foam::sumOp<Type>());
@@ -437,14 +452,38 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
 
     scalar rhos = solid.getMaterial()->getRho();
 
+    #ifdef GATEFOAM_DEBUG
+    printf("[DEBUG] cellids.size(): %d\n", cellids.size());
+    #endif
+
     for (size_t counter = 0; counter < cellids.size(); ++counter)
     {
         auto cellid = cellids[counter];
 
+        #ifdef GATEFOAM_DEBUG
+        printf(" > [DEBUG] cellid: %d\n", cellid);
+        #endif
+
         // alpha
         scalar alpha = num_inside_cells > 0 ? 1.0 : 0.0;
-        if (counter >= num_inside_cells)
+
+        #ifdef GATEFOAM_DEBUG
+        // debug info
+        {
+            printf(" > num_inside_cells: %d\n", num_inside_cells);
+        }
+        #endif
+
+        if ( /* counter >= num_inside_cells */ true) // FIXME: a dummy workaround
+        {
+            #ifdef GATEFOAM_DEBUG
+            // debug info
+            {
+                printf(" > triggering if (counter >= num_inside_cells)\n");
+            }
+            #endif
             alpha = m_geotools.calcCellVolume(cellid, solid, m_ON_TWOD) / cv[cellid];
+        }
         m_As[cellid] += alpha;
 
         // hydrodynamic interaction
@@ -452,6 +491,13 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
         force += f_ * cv[cellid] * dtINV * m_rhof[cellid];
         torque += t_ * cv[cellid] * dtINV * m_rhof[cellid];
         m_Fs[cellid] += f_ * dtINV;
+        
+        #ifdef GATEFOAM_DEBUG
+        // debug info
+        {
+            printf(" > cv: %lf, alpha: %lf, m_rhof: %lf\n", cv[cellid], alpha, m_rhof[cellid]);
+        }
+        #endif
 
         // thermal interaction
         // auto T_ = pcThermalInteraction(solid, m_Uf[cellid], cc[cellid], alpha);
