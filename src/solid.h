@@ -83,7 +83,12 @@ public:
     {
         // from a fixed order of Euler angles
         // orientation = quaternion(quaternion::XYZ, angles);
-        orientation = quaternion(angles); // FIX: change to this!
+        // FIX: change to this!
+        quaternion qx(vector(1, 0, 0), angles.x());
+        quaternion qy(vector(0, 1, 0), angles.y());
+        quaternion qz(vector(0, 0, 1), angles.z());
+        
+        orientation = qz * qy * qx;
     }
 
     inline IMotion*   getMotion()   const {return ptr_motion;  }
@@ -133,7 +138,8 @@ public:
 
     inline vector evalPointVelocity(const vector& p) const
     {
-        return velocity + (omega^(p - center));
+        // printf("[DEBUG] velocity: (%lf, %lf, %lf)\n", velocity.x(), velocity.y(), velocity.z());
+        return velocity + /* vector::zero; */ (omega^(p - center)); // FIXME: workaround
     }
 
     inline void addAcceleration(const vector& acc)
@@ -145,6 +151,9 @@ public:
     {
         force  = vector::zero;
         torque = vector::zero;
+    }
+    inline void clearBuoyancy()
+    {
         // added for buoyancy:
         buoyancyForce  = vector::zero;
         buoyancyTorque = vector::zero;
@@ -174,8 +183,11 @@ public:
             forcer_torque_old = forcer_torque;
             first_forcer_step = false;
         }
-        force += (1.5*forcer_force - 0.5*forcer_force_old);
-        torque += (1.5*forcer_torque - 0.5*forcer_torque_old);
+        // force += (1.5*forcer_force - 0.5*forcer_force_old);
+        // torque += (1.5*forcer_torque - 0.5*forcer_torque_old);
+        // switch to backward Euler
+        force  += forcer_force;
+        torque += forcer_torque;
     }
     inline void addMidFluidForceAndTorque()
     {
@@ -185,8 +197,11 @@ public:
             fluid_torque_old = fluid_torque;
             first_fluid_step = false;
         }
-        force  += (1.5*fluid_force  - 0.5*fluid_force_old);
-        torque += (1.5*fluid_torque - 0.5*fluid_torque_old);
+        // force  += (1.5*fluid_force  - 0.5*fluid_force_old);
+        // torque += (1.5*fluid_torque - 0.5*fluid_torque_old);
+        // switch to backward Euler
+        force  += fluid_force;
+        torque += fluid_torque;
     }
     inline void addBuoyancyForceAndTorque(const vector& buoyancy_force, const vector& buoyancy_torque)
     {
@@ -205,7 +220,7 @@ public:
             std::cout << "torque: " << buoyancyTorque.x() << " " << buoyancyTorque.y() << " " << buoyancyTorque.z() << std::endl;
         }
         #endif
-        
+
         force  += buoyancyForce;
         torque += buoyancyTorque;
     }

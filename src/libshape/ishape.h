@@ -45,7 +45,8 @@ public:
         // FIXME: THIS IS THE CAUSE!!!
         // return Foam::conjugate(tr.q).transform(p - tr.t);
         // workaround:
-        return p - tr.t;
+        // return p - tr.t;
+        return tr.q.R().T() & (p - tr.t);
     }
 
     virtual int    getShapeID() const {return m_id;}
@@ -53,23 +54,20 @@ public:
 
     bool phi01(const vector& p, const Transformation& tr) { return isInside      (world2local(p, tr)); }
     scalar phi(const vector& p, const Transformation& tr) {
+        // FIXME:
         #ifdef GATEFOAM_DEBUG
         // debug info
         {
             // printf(">>>>> IShape::phi(p, tr) receiving p=(%lf, %lf, %lf)\n", p.x(), p.y(), p.z());
             // vector w2l_p= world2local(p, tr);
             // printf("      world2local_p = (%lf, %lf, %lf)\n", w2l_p.x(), w2l_p.y(), w2l_p.z());
-            // vector local_p = world2local(p, tr);
-            vector diff = p - tr.t;
-            quaternion q_conj = Foam::conjugate(tr.q);
-            vector local_p = q_conj.transform(diff);
+            vector local_p = world2local(p, tr);
             
             printf(">>> IShape::phi(p, tr):\n");
             printf("    p = (%.6f, %.6f, %.6f)\n", p.x(), p.y(), p.z());
             printf("    tr.t = (%.6f, %.6f, %.6f)\n", tr.t.x(), tr.t.y(), tr.t.z());
             // printf("    tr.q = (%.6f, %.6f, %.6f, %.6f)\n", 
                 // tr.q.w(), tr.q.x(), tr.q.y(), tr.q.z());
-            printf("    p - tr.t = (%.6f, %.6f, %.6f)\n", diff.x(), diff.y(), diff.z());
             // printf("    conjugate(tr.q) = (%.6f, %.6f, %.6f, %.6f)\n",
                 // q_conj.w(), q_conj.x(), q_conj.y(), q_conj.z());
             printf("    local_p = (%.6f, %.6f, %.6f)\n", local_p.x(), local_p.y(), local_p.z());

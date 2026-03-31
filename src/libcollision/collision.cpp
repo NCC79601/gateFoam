@@ -22,9 +22,11 @@ scalar circleCircleCollision(const Solid& s1, const Solid& s2, vector& cP, vecto
 
 scalar planeSphereCollision(const Solid& p, const Solid& s, vector& cP, vector& cN)
 {
-    vector s_center = Foam::conjugate(p.getOrientation()).transform(s.getCenter() - p.getCenter());
+    // vector s_center = Foam::conjugate(p.getOrientation()).transform(s.getCenter() - p.getCenter());
+    vector s_center = p.getOrientation().R().T() & (s.getCenter() - p.getCenter()); // fix
     scalar p2s = s_center.y();
-    cN = p.getOrientation().transform(Foam::vector(0,1,0));
+    // cN = p.getOrientation().transform(Foam::vector(0,1,0));
+    cN = p.getOrientation().R() & Foam::vector(0, 1, 0);
     cP = s.getCenter() - s.getRadiusB()*cN;
     return s.getRadiusB() - p2s;
 }

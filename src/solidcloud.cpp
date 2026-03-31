@@ -344,9 +344,9 @@ void SolidCloud::fixInternal(scalar dt)
         if (m_ct[icell] >= 4) // if cell totally within a solid
         {
             label id = m_ct[icell] - 4; // id of the solid that contains this cell
-            // m_Uf[icell] = m_solids[id].evalPointVelocity(cc[icell]);
+            m_Uf[icell] = m_solids[id].evalPointVelocity(cc[icell]);
             // FIXME: workaround
-            m_Uf[icell] = vector::zero;
+            // m_Uf[icell] = vector::zero;
         }
     }
     m_Uf.correctBoundaryConditions();
@@ -445,7 +445,7 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
         [this](const Solid& solid, const vector& uf, const vector& cc, scalar alpha) -> std::pair<vector, vector> {
         vector us = solid.evalPointVelocity(cc);
         // FIXME: workaround for us
-        us = vector::zero;
+        // us = vector::zero;
         vector force = m_Cpenalty * alpha * (uf - us);
         vector torque = (cc - solid.getCenter()) ^ force;
         return {force, torque};
@@ -501,8 +501,11 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
 
         // hydrodynamic interaction
         auto [f_, t_] = pcHydrodynamicInteraction(solid, m_Uf[cellid], cc[cellid], alpha);
-        force += f_ * cv[cellid] * dtINV * m_rhof[cellid];
-        torque += t_ * cv[cellid] * dtINV * m_rhof[cellid];
+        // BUG: seems like wrong?
+        // force += f_ * cv[cellid] * dtINV * m_rhof[cellid];
+        // torque += t_ * cv[cellid] * dtINV * m_rhof[cellid];
+        force += f_ * cv[cellid] * m_rhof[cellid];
+        torque += t_ * cv[cellid] * m_rhof[cellid];
         m_Fs[cellid] += f_ * dtINV;
         
         #ifdef GATEFOAM_DEBUG
@@ -518,7 +521,7 @@ void SolidCloud::solidFluidInteract(Solid& solid, scalar dt)
         // m_Ts[cellid] += T_;
 
         // buoyancy calculation
-        vector localBuoyancyForce  = -alpha * cv[cellid] * (rhos - m_rhof[cellid]) * m_gravity;
+        vector localBuoyancyForce  = alpha * cv[cellid] * (rhos - m_rhof[cellid]) * m_gravity;
         vector localBuoyancyTorque = (cc[cellid] - solid.getCenter()) ^ localBuoyancyForce;
 
         solid.addBuoyancyForceAndTorque(
@@ -549,9 +552,17 @@ void SolidCloud::interact(scalar time, scalar dt)
     // reset solid field, which are source terms for the fluid solver
     m_ct = 0;
     m_As = 0.0;
-    // m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
-    // clear m_Fs explicitly at each pimple outer iteration
+    m_Fs = Foam::dimensionedVector("zero", Foam::dimAcceleration, Foam::vector::zero);
+    // solidcloud.clearFs();
+
     // m_Ts = Foam::dimensionedScalar("zero", Foam::dimTemperature, 0.0);
+
+    for (Solid& solid : m_solids)
+    {
+        // clear old buoyancy
+        solid.clearBuoyancy();
+    }
+
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 

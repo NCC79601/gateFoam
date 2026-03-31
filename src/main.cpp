@@ -118,9 +118,9 @@ int main(int argc, char *argv[])
         Foam::dimensionedScalar dt = runTime.deltaT();
 
         // clear previous Fs
-        #ifdef ENABLE_IBM
-        solidcloud.clearFs();
-        #endif
+        // #ifdef ENABLE_IBM
+        // solidcloud.clearFs();
+        // #endif
 
         // Pressure-velocity corrector
         while (pimple.loop())

@@ -42,7 +42,9 @@ IForcer::Force Magnetic::generate(
     // hardcoded magnetic moment as magnitude * unit direction vector
     static vector m_original = (1.0) * (vector(0.0, 0.0, 1.0));
     vector B = A * std::cos(w*time)*direction; // magnetic field
-    vector m = Foam::conjugate(orientation).transform(m_original);
+    // vector m = Foam::conjugate(orientation).transform(m_original);
+    Foam::vector m = orientation.R().T() & m_original;
+
     return {vector::zero, m ^ B};
 }
 
