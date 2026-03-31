@@ -1,0 +1,103 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  6.0.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      solids;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+meta
+{
+  on_fluid 1;
+  on_twod  1;
+  gravity  (0.0 -9.8 0.0);
+  Cpenalty 200000.0;              // penalty factor for IBM
+  // Cpenalty 10.0;
+}
+  
+shapes
+{
+    shape1
+    {
+        name gate;
+        type Rectangle;
+        // radius 1.0;
+        radiusa 0.1; // half!
+        radiusb 1.0;
+    }
+}
+
+materials
+{
+    material1
+    {
+      name mat1;
+      type General;
+      rho 1.0;
+      rn 0.9;
+      rt 0.9;
+    }
+    material2
+    {
+      name xeonite;
+      type General;
+      rho 3000.0;
+    }
+}
+
+motions
+{
+    motion1
+    {
+      name static1;
+      type Motion01Mask;
+      mask b000000;
+    }
+    motion2
+    {
+      name sixDofFree;
+      type Motion01Mask;
+      mask b111111;
+    }
+    motion3
+    {
+      name rotor1;
+      type MotionRotor; // 质心公转 + 自转
+      period 10000.0;
+      radius 2.0;
+      theta0 0.5;
+      selfom 1.0;
+    }
+    motion4
+    {
+      name     gateMotion;
+      type     MotionGate;
+      opentime 0.5;
+      stoptime 2.0;
+      dy       1.0;
+    }
+}
+
+solids
+{
+    solid1
+    {
+      shp_name gate;
+      mat_name xeonite;
+      mot_name gateMotion;
+      pos   (3.0 1.0 0.0);
+      vel   (0.0 0.0 0.0);
+      euler (0.0 0.0 0.0);
+    }
+}
+
+planes {}
