@@ -16,6 +16,7 @@ set(
     motionopenclose.h
     motionrotor.h
     motionsinedirectional.h
+    motiongate.h
 )
 
 add_library(

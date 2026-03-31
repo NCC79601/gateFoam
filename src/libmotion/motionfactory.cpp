@@ -47,4 +47,6 @@ REGISTERMOTION(Motion01Mask);
 REGISTERMOTION(MotionRotor);
 #include "motionopenclose.h"
 REGISTERMOTION(MotionOpenClose);
-
+// added MotionGate
+#include "motiongate.h"
+REGISTERMOTION(MotionGate);
